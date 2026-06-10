@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>文化旅行助手 | 稳定版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(145deg, #f0f4f8 0%, #e6ede9 100%);
+            font-family: system-ui, 'Segoe UI', -apple-system, sans-serif;
+            padding: 1rem;
+            min-height: 100vh;
+        }
+        .app-container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: rgba(255, 252, 242, 0.96);
+            border-radius: 48px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            padding: 1.5rem;
+        }
+        h1 { font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, #2b6e49, #a57142); background-clip: text; -webkit-background-clip: text; color: transparent; margin-bottom: 0.25rem; }
+        .sub { color: #7a6a53; font-size: 0.85rem; margin-bottom: 1.5rem; border-left: 3px solid #cbae86; padding-left: 12px; }
+        .api-bar {
+            background: #fff8e8;
+            border-radius: 60px;
+            padding: 10px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .api-bar input { flex: 2; padding: 10px 16px; border-radius: 40px; border: 1px solid #ddd0b6; background: white; font-size: 0.85rem; margin: 0; }
+        .api-bar button { margin: 0; padding: 8px 20px; background: #3a7659; color: white; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: #ede7dd;
+            padding: 5px;
+            border-radius: 60px;
+        }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px 0;
+            font-weight: 600;
+            border-radius: 40px;
+            cursor: pointer;
+            color: #5c6e57;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: white;
+            color: #2c6e49;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .panel { display: none; }
+        .panel.active-panel { display: block; }
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 1.3rem;
+            margin-bottom: 1.3rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #f0e6d8;
+        }
+        .section-title { font-weight: 600; color: #3a5c45; margin-bottom: 12px; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+        select, input, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 30px;
+            border: 1px solid #e2d5c0;
+            background: #fffdf8;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-family: inherit;
+        }
+        button {
+            background: #3a7659;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-top: 8px;
+            margin-right: 8px;
+            transition: background 0.2s;
+        }
+        button:hover { background: #2c5f46; }
+        button.light { background: #e8e0d0; color: #4a3b28; }
+        button.warning { background: #c97e5a; }
+        
+        .content-card {
+            background: #fefaf2;
+            border-radius: 28px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid #f0e2d0;
+        }
+        .content-card h4 { font-size: 0.9rem; font-weight: 600; color: #8b6b42; margin-bottom: 8px; }
+        .content-card p { font-size: 0.92rem; line-height: 1.5; color: #3a4a3a; }
+        .badge {
+            background: #e8f0e0;
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            color: #4a6a3a;
+            margin-bottom: 10px;
+        }
+        .flex-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .embedded-map { width: 100%; height: 280px; border: none; border-radius: 24px; margin-top: 12px; }
+        .camera-container {
+            background: #f5f0e8;
+            border-radius: 28px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        #liveCamera { width: 100%; height: auto; display: none; transform: scaleX(-1); border-radius: 20px; }
+        #cameraPlaceholder { text-align: center; color: #9a8a72; padding: 50px 20px; }
+        .preview-img { max-width: 100%; border-radius: 20px; margin-top: 10px; display: none; border: 1px solid #e0d0bc; }
+        .permission-card { background: #f0f4ec; border-radius: 28px; padding: 12px; margin-bottom: 15px; }
+        .perm-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e0d8c8; flex-wrap: wrap; gap: 8px; }
+        .perm-item:last-child { border-bottom: none; }
+        .perm-status { font-size: 0.75rem; padding: 2px 10px; border-radius: 30px; }
+        .perm-status.granted { background: #d4e8d4; color: #2a6e2a; }
+        .perm-status.denied { background: #f0d8d0; color: #b95a3a; }
+        .perm-status.unknown { background: #e8e0d0; color: #8a7a62; }
+        footer { text-align: center; font-size: 0.7rem; margin-top: 1.5rem; color: #b6a07e; }
+        .help-text { font-size: 0.7rem; color: #9a8a6a; margin-top: 4px; }
+        .manual-dest { background: #fff8f0; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e0d0b8; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <h1>🧳 文化旅行助手</h1>
+    <div class="sub">行前指南 · 行中陪伴 · 行后回顾</div>
+    
+    <div class="api-bar">
+        <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key (sk-...)" style="flex:2;">
+        <button id="saveApiKeyBtn">保存密钥</button>
+        <span id="apiStatus" class="badge">未配置</span>
+    </div>
+    
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="pre">📘 行前指南</button>
+        <button class="tab-btn" data-tab="during">📍 行中陪伴</button>
+        <button class="tab-btn" data-tab="post">🌱 行后回顾</button>
+    </div>
+    
+    <!-- 行前指南 -->
+    <div id="prePanel" class="panel active-panel">
+        <div class="card">
+            <div class="section-title">🌍 选择目的地（两种方式）</div>
+            <div style="margin-bottom: 16px;">
+                <div style="font-size:0.8rem; color:#8a7a62; margin-bottom:6px;">📌 从列表选择</div>
+                <select id="continentSelect">
+                    <option value="">-- 选择大洲 --</option>
+                    <option value="亚洲">亚洲</option>
+                    <option value="欧洲">欧洲</option>
+                    <option value="北美洲">北美洲</option>
+                    <option value="大洋洲">大洋洲</option>
+                    <option value="其他">其他</option>
+                </select>
+                <div id="countrySelectWrapper">
+                    <select id="countrySelect"><option value="">-- 先选大洲 --</option></select>
+                </div>
+                <div id="customCountryWrapper" style="display:none;">
+                    <input type="text" id="customCountryInput" placeholder="输入国家名称">
+                    <input type="text" id="customCityInput" placeholder="输入城市名称">
+                </div>
+                <div id="citySelectWrapper">
+                    <select id="citySelect"><option value="">-- 先选国家 --</option></select>
+                </div>
+                <div class="flex-row" id="hotCities" style="margin: 8px 0;"></div>
+            </div>
+            <div class="manual-dest">
+                <div style="font-size:0.8rem; color:#8a7a62; margin-bottom:6px;">✏️ 或直接手动输入</div>
+                <div class="flex-row">
+                    <input type="text" id="manualCountry" placeholder="国家（如：冰岛）" style="flex:1;">
+                    <input type="text" id="manualCity" placeholder="城市（如：雷克雅未克）" style="flex:1;">
+                </div>
+                <button id="useManualBtn" class="light">使用手动输入的目的地</button>
+            </div>
+            <button id="genGuideBtn" style="margin-top:12px;">📖 生成文化指南</button>
+            <div id="guideResult"></div>
+        </div>
+        <div class="card">
+            <div class="section-title">📍 当前目的地</div>
+            <div id="selectedDestDisplay" style="color:#5a6e4a;">未选择</div>
+        </div>
+    </div>
+    
+    <!-- 行中陪伴 -->
+    <div id="duringPanel" class="panel">
+        <div class="card permission-card">
+            <div class="section-title">🔐 权限与设置</div>
+            <div class="perm-item">
+                <span>📷 摄像头权限</span>
+                <span id="cameraPermStatus" class="perm-status unknown">未检测</span>
+                <button id="requestCameraPermBtn" class="light" style="margin:0; padding:4px 12px;">请求权限</button>
+            </div>
+            <div class="perm-item">
+                <span>📍 位置权限</span>
+                <span id="locationPermStatus" class="perm-status unknown">未检测</span>
+                <button id="requestLocationPermBtn" class="light" style="margin:0; padding:4px 12px;">请求位置</button>
+            </div>
+            <div class="help-text">💡 若摄像头无法开启，请点击「请求权限」并允许；如仍失败，请手动在浏览器设置中允许摄像头。</div>
+        </div>
+        
+        <div class="card map-card">
+            <div class="section-title">🗺️ 当前位置地图</div>
+            <button id="getLocationBtn" class="light">📍 获取我的位置</button>
+            <div id="locationStatus" class="badge" style="margin: 8px 0;">未获取位置</div>
+            <iframe id="embeddedMap" class="embedded-map" src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d100000!2d0!3d0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1szh-CN!2sus!4v1" allowfullscreen=""></iframe>
+            <div class="flex-row"><button id="openGoogleMaps" class="light">🗺️ 打开谷歌地图</button><button id="openAppleMaps" class="light">🍎 打开Apple地图</button></div>
+            <div id="currentDestBadge" class="badge" style="margin-top:10px;">目的地：未选择</div>
+        </div>
+        
+        <div class="card">
+            <div class="section-title">💬 文化问答</div>
+            <input type="text" id="culturalQuestion" placeholder="例如：为什么日本人进门前要脱鞋？">
+            <div class="flex-row"><button id="askSimpleBtn">精简答案</button><button id="askDetailBtn">了解更多</button></div>
+            <div id="qaAnswer" style="display:none;" class="content-card"></div>
+        </div>
+        
+        <div class="card emergency-card">
+            <div class="section-title">🚨 遇到具体问题</div>
+            <div id="urgentDestHint" class="badge">将根据目的地给出方案</div>
+            <div class="flex-row" style="align-items: flex-start;">
+                <textarea id="urgentQuestion" rows="2" placeholder="例如：护照丢失了怎么办？" style="flex:3;"></textarea>
+                <button id="voiceInputBtn" class="light" style="margin-top:10px;">🎤 语音输入</button>
+            </div>
+            <button id="askUrgentBtn" class="warning">获取当地方案</button>
+            <div id="urgentAnswer" style="display:none;" class="content-card"></div>
+        </div>
+        
+        <div class="card">
+            <div class="section-title">📷 文化识别</div>
+            <div class="camera-container">
+                <video id="liveCamera" autoplay playsinline muted></video>
+                <div id="cameraPlaceholder">📸 点击下方按钮开启摄像头</div>
+            </div>
+            <div class="flex-row">
+                <button id="startCameraBtn" class="light">开启摄像头</button>
+                <button id="snapshotBtn" disabled>拍照截图</button>
+                <button id="uploadPhotoBtn" class="light">上传图片</button>
+            </div>
+            <div id="cameraStatusMsg" class="help-text" style="display:none; background:#fef0e0; padding:6px; border-radius:16px;"></div>
+            <input type="file" id="fileInput" accept="image/*" style="display:none;">
+            <img id="previewImg" class="preview-img">
+            <textarea id="photoDesc" rows="2" placeholder="描述图片中的文化元素..."></textarea>
+            <button id="analyzePhotoBtn">解读文化</button>
+            <div id="photoResult" style="display:none;" class="content-card"></div>
+        </div>
+    </div>
+    
+    <!-- 行后回顾 -->
+    <div id="postPanel" class="panel">
+        <div class="card">
+            <div class="section-title">📝 回顾文化差异</div>
+            <textarea id="postExperience" rows="3" placeholder="分享印象深刻的文化差异经历..."></textarea>
+            <button id="genPostBtn">生成成长总结</button>
+            <div id="postResult" style="display:none;" class="content-card"></div>
+            <button id="resetBtn" class="light" style="margin-top:15px;">清除所有数据</button>
+        </div>
+    </div>
+    <footer>✨ 支持手动输入目的地 | 语音输入问题 | 摄像头权限优化</footer>
+</div>
+
+<script>
+    // 稳固的目的地数据
+    const destinations = {
+        '亚洲': { '日本': ['东京','京都','大阪'], '韩国': ['首尔','釜山'], '泰国': ['曼谷','清迈'], '中国': ['北京','上海','西安'] },
+        '欧洲': { '法国': ['巴黎','尼斯'], '意大利': ['罗马','佛罗伦萨'], '英国': ['伦敦','爱丁堡'] },
+        '北美洲': { '美国': ['纽约','洛杉矶'], '加拿大': ['多伦多','温哥华'] },
+        '大洋洲': { '澳大利亚': ['悉尼','墨尔本'], '新西兰': ['奥克兰'] }
+    };
+    const hotCities = [
+        { name: '东京', continent: '亚洲', country: '日本' }, { name: '京都', continent: '亚洲', country: '日本' },
+        { name: '巴黎', continent: '欧洲', country: '法国' }, { name: '首尔', continent: '亚洲', country: '韩国' },
+        { name: '曼谷', continent: '亚洲', country: '泰国' }, { name: '伦敦', continent: '欧洲', country: '英国' }
+    ];
+    
+    let DEEPSEEK_API_KEY = localStorage.getItem('deepseek_api_key') || '';
+    let currentDestination = null;
+    let currentLat = null, currentLng = null;
+    let mediaStream = null;
+    
+    function updateApiStatus() {
+        const span = document.getElementById('apiStatus');
+        if(span) span.innerText = DEEPSEEK_API_KEY ? '已配置' : '未配置';
+    }
+    
+    // 权限检测
+    async function checkCameraPermission() {
+        const statusSpan = document.getElementById('cameraPermStatus');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop());
+            statusSpan.innerText = '已授权';
+            statusSpan.className = 'perm-status granted';
+            return true;
+        } catch(e) {
+            if (e.name === 'NotAllowedError') {
+                statusSpan.innerText = '已拒绝';
+                statusSpan.className = 'perm-status denied';
+            } else {
+                statusSpan.innerText = '无摄像头/未知';
+                statusSpan.className = 'perm-status unknown';
+            }
+            return false;
+        }
+    }
+    
+    function checkLocationPermission() {
+        const statusSpan = document.getElementById('locationPermStatus');
+        if (navigator.permissions) {
+            navigator.permissions.query({ name: 'geolocation' }).then(result => {
+                if (result.state === 'granted') {
+                    statusSpan.innerText = '已授权';
+                    statusSpan.className = 'perm-status granted';
+                } else if (result.state === 'denied') {
+                    statusSpan.innerText = '已拒绝';
+                    statusSpan.className = 'perm-status denied';
+                } else {
+                    statusSpan.innerText = '未决定';
+                    statusSpan.className = 'perm-status unknown';
+                }
+            }).catch(() => {
+                statusSpan.innerText = '未知';
+                statusSpan.className = 'perm-status unknown';
+            });
+        } else {
+            statusSpan.innerText = '不支持';
+            statusSpan.className = 'perm-status unknown';
+        }
+    }
+    
+    async function requestCameraPermission() {
+        const statusMsg = document.getElementById('cameraStatusMsg');
+        statusMsg.style.display = 'block';
+        statusMsg.innerHTML = '⏳ 正在请求摄像头权限，请在弹窗中点击“允许”...';
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop());
+            statusMsg.innerHTML = '✅ 摄像头权限已获取！现在可以使用了。';
+            setTimeout(() => statusMsg.style.display = 'none', 2000);
+            checkCameraPermission();
+        } catch(e) {
+            statusMsg.innerHTML = '❌ 无法获取摄像头权限。请检查浏览器设置，手动允许摄像头访问。';
+            checkCameraPermission();
+        }
+    }
+    
+    function requestLocationPermission() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                () => { alert('位置权限已获取'); checkLocationPermission(); },
+                () => { alert('位置权限被拒绝，请在浏览器设置中手动允许'); checkLocationPermission(); }
+            );
+        } else {
+            alert('浏览器不支持定位');
+        }
+    }
+    
+    // DeepSeek 调用
+    async function callDeepSeek(messages) {
+        if (!DEEPSEEK_API_KEY) throw new Error('请先配置 API Key');
+        const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEEPSEEK_API_KEY}` },
+            body: JSON.stringify({ model: 'deepseek-chat', messages, temperature: 0.7, max_tokens: 1200 })
+        });
+        if (!res.ok) throw new Error('API 调用失败');
+        const data = await res.json();
+        return data.choices[0].message.content;
+    }
+    
+    function formatText(text) {
+        return text.replace(/\*\*/g, '').replace(/\*/g, '');
+    }
+    
+    async function getCultureGuide(city, country) {
+        const result = await callDeepSeek([{ role: "system", content: "输出简洁实用，不要使用星号。" }, { role: "user", content: `为${city}（${country}）生成文化指南。先输出6条核心礼仪（每条一句话），然后用---分隔，再输出200字深度解读。` }]);
+        const parts = result.split('---');
+        return { compact: formatText(parts[0]), deep: formatText(parts[1] || '') };
+    }
+    
+    function renderGuideResult(compact, deep) {
+        const lines = compact.split('\n');
+        let itemsHtml = '';
+        for(let line of lines) {
+            if(line.trim() && line.trim().length > 2) {
+                itemsHtml += `<div style="padding:6px 0; border-bottom:1px solid #f0e2d0; display:flex; gap:8px;"><span style="color:#c9a87b;">•</span><span>${line.replace(/^\d+[\.、]/, '').trim()}</span></div>`;
+            }
+        }
+        if(itemsHtml === '') itemsHtml = `<p>${compact}</p>`;
+        return `
+            <div class="content-card">
+                <h4>📋 当地礼仪指南</h4>
+                ${itemsHtml}
+                <button id="expandDeepBtn" class="light" style="margin-top:12px;">📖 了解更多背景</button>
+                <div id="deepContentDiv" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid #f0e2d0;">
+                    <h4>📚 文化背景</h4>
+                    <p>${deep.replace(/\n/g,'<br>')}</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderAnswer(text, title) {
+        return `<div class="content-card"><h4>${title}</h4><p>${formatText(text).replace(/\n/g,'<br>')}</p></div>`;
+    }
+    
+    async function askQuestion(q, city, isSimple) {
+        if(isSimple) {
+            return await callDeepSeek([{ role: "system", content: "简洁回答，100字左右，不要星号。" }, { role: "user", content: `用户在${city}旅行问：${q}` }]);
+        } else {
+            return await callDeepSeek([{ role: "system", content: "详细回答，300字左右，不要星号。" }, { role: "user", content: `用户在${city}旅行问：${q}，解释文化背景。` }]);
+        }
+    }
+    
+    async function askUrgentLocal(q, city, country) {
+        return await callDeepSeek([{ role: "system", content: "当地向导，200字左右，不要星号。" }, { role: "user", content: `用户在${city}（${country}）遇到：${q}，给出具体步骤。` }]);
+    }
+    
+    async function analyzePhoto(desc, city) {
+        return await callDeepSeek([{ role: "system", content: "文化解说员，250字左右，不要星号。" }, { role: "user", content: `照片描述：${desc}（${city}），解读文化元素。` }]);
+    }
+    
+    async function generatePostSummary(experience) {
+        return await callDeepSeek([{ role: "system", content: "成长导师，200字左右，不要星号。" }, { role: "user", content: `用户经历：${experience}，总结成长点。` }]);
+    }
+    
+    function updateEmbeddedMap(lat, lng) {
+        const iframe = document.getElementById('embeddedMap');
+        if(iframe) iframe.src = `https://www.google.com/maps/embed/v1/view?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&center=${lat},${lng}&zoom=14&language=zh`;
+        document.getElementById('locationStatus').innerHTML = `📍 已定位：${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+    
+    // 摄像头
+    async function startCamera() {
+        const video = document.getElementById('liveCamera');
+        const placeholder = document.getElementById('cameraPlaceholder');
+        const snapshotBtn = document.getElementById('snapshotBtn');
+        const startBtn = document.getElementById('startCameraBtn');
+        const statusMsg = document.getElementById('cameraStatusMsg');
+        
+        if(mediaStream) { stopCamera(); return; }
+        
+        statusMsg.style.display = 'block';
+        statusMsg.innerHTML = '⏳ 请求摄像头权限...';
+        startBtn.disabled = true;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            mediaStream = stream;
+            video.srcObject = stream;
+            video.style.display = 'block';
+            placeholder.style.display = 'none';
+            await video.play();
+            snapshotBtn.disabled = false;
+            startBtn.innerText = '关闭摄像头';
+            startBtn.classList.add('warning');
+            startBtn.classList.remove('light');
+            statusMsg.style.display = 'none';
+            checkCameraPermission();
+        } catch(e) {
+            statusMsg.innerHTML = '❌ 无法开启摄像头，请点击上方“请求权限”按钮手动授权。';
+            startBtn.disabled = false;
+        }
+    }
+    
+    function stopCamera() {
+        if(mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+        const video = document.getElementById('liveCamera');
+        video.srcObject = null;
+        video.style.display = 'none';
+        document.getElementById('cameraPlaceholder').style.display = 'flex';
+        document.getElementById('snapshotBtn').disabled = true;
+        const startBtn = document.getElementById('startCameraBtn');
+        startBtn.innerText = '开启摄像头';
+        startBtn.classList.remove('warning');
+        startBtn.classList.add('light');
+        mediaStream = null;
+    }
+    
+    function captureSnapshot() {
+        const video = document.getElementById('liveCamera');
+        if(!video.videoWidth) { alert('请先开启摄像头'); return; }
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        const preview = document.getElementById('previewImg');
+        preview.src = canvas.toDataURL('image/jpeg');
+        preview.style.display = 'block';
+        alert('截图已保存，请描述后点击解读文化');
+    }
+    
+    // 语音输入
+    function startVoiceInput() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('浏览器不支持语音输入，请手动输入');
+            return;
+        }
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'zh-CN';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.start();
+        recognition.onresult = (event) => {
+            const text = event.results[0][0].transcript;
+            document.getElementById('urgentQuestion').value = text;
+        };
+        recognition.onerror = (event) => {
+            alert('语音识别失败：' + event.error);
+        };
+    }
+    
+    // 初始化联动
+    function initLocationSelectors() {
+        const continentSel = document.getElementById('continentSelect');
+        const countrySel = document.getElementById('countrySelect');
+        const citySel = document.getElementById('citySelect');
+        const customWrapper = document.getElementById('customCountryWrapper');
+        const countryWrapper = document.getElementById('countrySelectWrapper');
+        const cityWrapper = document.getElementById('citySelectWrapper');
+        
+        continentSel.onchange = () => {
+            const continent = continentSel.value;
+            if (continent === '其他') {
+                customWrapper.style.display = 'block';
+                countryWrapper.style.display = 'none';
+                cityWrapper.style.display = 'none';
+            } else {
+                customWrapper.style.display = 'none';
+                countryWrapper.style.display = 'block';
+                cityWrapper.style.display = 'block';
+                if (continent) {
+                    const countries = Object.keys(destinations[continent] || {});
+                    countrySel.innerHTML = '<option value="">-- 选择国家 --</option>' + countries.map(c => `<option value="${c}">${c}</option>`).join('');
+                    countrySel.disabled = false;
+                } else {
+                    countrySel.innerHTML = '<option value="">-- 先选大洲 --</option>';
+                    citySel.innerHTML = '<option value="">-- 先选国家 --</option>';
+                }
+                citySel.innerHTML = '<option value="">-- 先选国家 --</option>';
+            }
+        };
+        
+        countrySel.onchange = () => {
+            const continent = continentSel.value;
+            const country = countrySel.value;
+            if (!continent || !country) return;
+            const cities = destinations[continent]?.[country] || [];
+            citySel.innerHTML = '<option value="">-- 选择城市 --</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+            citySel.disabled = false;
+        };
+        
+        // 手动触发初始化
+        continentSel.dispatchEvent(new Event('change'));
+    }
+    
+    // 热门城市
+    function setupHotCities() {
+        const hotDiv = document.getElementById('hotCities');
+        hotDiv.innerHTML = hotCities.map(c => `<button class="light" data-city='${JSON.stringify(c)}'>🔥 ${c.name}</button>`).join('');
+        hotDiv.querySelectorAll('button').forEach(btn => {
+            btn.onclick = () => {
+                const d = JSON.parse(btn.getAttribute('data-city'));
+                const continentSel = document.getElementById('continentSelect');
+                const countrySel = document.getElementById('countrySelect');
+                const citySel = document.getElementById('citySelect');
+                continentSel.value = d.continent;
+                continentSel.dispatchEvent(new Event('change'));
+                setTimeout(() => {
+                    countrySel.value = d.country;
+                    countrySel.dispatchEvent(new Event('change'));
+                    setTimeout(() => {
+                        citySel.value = d.name;
+                    }, 50);
+                }, 50);
+            };
+        });
+    }
+    
+    // 所有事件绑定
+    function bindEvents() {
+        document.getElementById('saveApiKeyBtn').onclick = () => {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if(key && key.startsWith('sk-')) {
+                DEEPSEEK_API_KEY = key;
+                localStorage.setItem('deepseek_api_key', key);
+                updateApiStatus();
+                alert('API Key 已保存');
+                // 可选：刷新页面以重新加载所有依赖
+                // location.reload();
+            } else alert('请输入有效的 API Key (以 sk- 开头)');
+        };
+        
+        document.getElementById('requestCameraPermBtn').onclick = requestCameraPermission;
+        document.getElementById('requestLocationPermBtn').onclick = requestLocationPermission;
+        
+        // 手动输入目的地
+        document.getElementById('useManualBtn').onclick = () => {
+            const country = document.getElementById('manualCountry').value.trim();
+            const city = document.getElementById('manualCity').value.trim();
+            if (!country || !city) { alert('请填写国家和城市'); return; }
+            currentDestination = { continent: '手动', country, city };
+            localStorage.setItem('travel_destination', JSON.stringify(currentDestination));
+            document.getElementById('selectedDestDisplay').innerText = `${city}, ${country}`;
+            document.getElementById('currentDestBadge').innerHTML = `目的地：${city}`;
+            document.getElementById('urgentDestHint').innerHTML = `将根据${city}当地情况给出方案`;
+            alert(`已设置目的地：${city}, ${country}`);
+        };
+        
+        // 生成指南
+        document.getElementById('genGuideBtn').onclick = async () => {
+            let country, city;
+            // 如果已经设置了手动目的地，优先使用
+            if (currentDestination && currentDestination.continent === '手动') {
+                country = currentDestination.country;
+                city = currentDestination.city;
+            } else {
+                const continent = document.getElementById('continentSelect').value;
+                if (continent === '其他') {
+                    country = document.getElementById('customCountryInput').value.trim();
+                    city = document.getElementById('customCityInput').value.trim();
+                    if (!country || !city) { alert('请输入国家和城市名称'); return; }
+                } else {
+                    country = document.getElementById('countrySelect').value;
+                    city = document.getElementById('citySelect').value;
+                    if (!continent || !country || !city) { alert('请完整选择大洲、国家、城市'); return; }
+                }
+            }
+            currentDestination = { continent: document.getElementById('continentSelect').value || '手动', country, city };
+            localStorage.setItem('travel_destination', JSON.stringify(currentDestination));
+            document.getElementById('selectedDestDisplay').innerText = `${city}, ${country}`;
+            document.getElementById('currentDestBadge').innerHTML = `目的地：${city}`;
+            document.getElementById('urgentDestHint').innerHTML = `将根据${city}当地情况给出方案`;
+            
+            const btn = document.getElementById('genGuideBtn');
+            btn.disabled = true; btn.innerText = '生成中...';
+            try {
+                const { compact, deep } = await getCultureGuide(city, country);
+                document.getElementById('guideResult').innerHTML = renderGuideResult(compact, deep);
+                const expandBtn = document.getElementById('expandDeepBtn');
+                if(expandBtn) expandBtn.onclick = () => {
+                    const deepDiv = document.getElementById('deepContentDiv');
+                    deepDiv.style.display = deepDiv.style.display === 'none' ? 'block' : 'none';
+                };
+            } catch(e) { alert('生成失败：'+e.message); }
+            btn.disabled = false; btn.innerText = '生成文化指南';
+        };
+        
+        // 问答
+        document.getElementById('askSimpleBtn').onclick = async () => {
+            const q = document.getElementById('culturalQuestion').value;
+            if(!q || !currentDestination) { alert('请先选择目的地并输入问题'); return; }
+            const div = document.getElementById('qaAnswer');
+            div.style.display = 'block';
+            div.innerHTML = '<p>思考中...</p>';
+            try {
+                const ans = await askQuestion(q, currentDestination.city, true);
+                div.innerHTML = renderAnswer(ans, "回答");
+            } catch(e) { div.innerHTML = `<p>错误：${e.message}</p>`; }
+        };
+        document.getElementById('askDetailBtn').onclick = async () => {
+            const q = document.getElementById('culturalQuestion').value;
+            if(!q || !currentDestination) { alert('请先选择目的地并输入问题'); return; }
+            const div = document.getElementById('qaAnswer');
+            div.style.display = 'block';
+            div.innerHTML = '<p>加载中...</p>';
+            try {
+                const ans = await askQuestion(q, currentDestination.city, false);
+                div.innerHTML = renderAnswer(ans, "详细解读");
+            } catch(e) { div.innerHTML = `<p>错误：${e.message}</p>`; }
+        };
+        
+        // 紧急问题
+        document.getElementById('askUrgentBtn').onclick = async () => {
+            const q = document.getElementById('urgentQuestion').value;
+            if(!q || !currentDestination) { alert('请先选择目的地并输入问题'); return; }
+            const div = document.getElementById('urgentAnswer');
+            div.style.display = 'block';
+            div.innerHTML = '<p>查询中...</p>';
+            try {
+                const ans = await askUrgentLocal(q, currentDestination.city, currentDestination.country);
+                div.innerHTML = renderAnswer(ans, "当地方案");
+            } catch(e) { div.innerHTML = `<p>错误：${e.message}</p>`; }
+        };
+        document.getElementById('voiceInputBtn').onclick = startVoiceInput;
+        
+        // 摄像头
+        document.getElementById('startCameraBtn').onclick = startCamera;
+        document.getElementById('snapshotBtn').onclick = captureSnapshot;
+        
+        const uploadBtn = document.getElementById('uploadPhotoBtn');
+        const fileInput = document.getElementById('fileInput');
+        uploadBtn.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => { document.getElementById('previewImg').src = ev.target.result; document.getElementById('previewImg').style.display = 'block'; };
+                reader.readAsDataURL(file);
+            }
+        };
+        
+        document.getElementById('analyzePhotoBtn').onclick = async () => {
+            const desc = document.getElementById('photoDesc').value;
+            if(!desc || !currentDestination) { alert('请描述图片并选择目的地'); return; }
+            const div = document.getElementById('photoResult');
+            div.style.display = 'block';
+            div.innerHTML = '<p>分析中...</p>';
+            try {
+                const ans = await analyzePhoto(desc, currentDestination.city);
+                div.innerHTML = renderAnswer(ans, "文化解读");
+            } catch(e) { div.innerHTML = `<p>错误：${e.message}</p>`; }
+        };
+        
+        // 位置
+        document.getElementById('getLocationBtn').onclick = () => {
+            if(navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    currentLat = pos.coords.latitude;
+                    currentLng = pos.coords.longitude;
+                    updateEmbeddedMap(currentLat, currentLng);
+                }, () => alert('无法获取位置，请先在权限设置中授权'));
+            } else alert('浏览器不支持GPS');
+        };
+        
+        document.getElementById('openGoogleMaps').onclick = () => currentLat && window.open(`https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`);
+        document.getElementById('openAppleMaps').onclick = () => currentLat && window.open(`http://maps.apple.com/?q=${currentLat},${currentLng}`);
+        
+        // 行后
+        document.getElementById('genPostBtn').onclick = async () => {
+            const exp = document.getElementById('postExperience').value;
+            if(!exp) { alert('请分享你的经历'); return; }
+            const div = document.getElementById('postResult');
+            div.style.display = 'block';
+            div.innerHTML = '<p>生成中...</p>';
+            try {
+                const res = await generatePostSummary(exp);
+                div.innerHTML = renderAnswer(res, "成长建议");
+            } catch(e) { div.innerHTML = `<p>错误：${e.message}</p>`; }
+        };
+        
+        document.getElementById('resetBtn').onclick = () => { if(confirm('清除所有数据？')) { localStorage.clear(); location.reload(); } };
+    }
+    
+    function initTabs() {
+        const tabs = document.querySelectorAll('.tab-btn');
+        const panels = { pre: document.getElementById('prePanel'), during: document.getElementById('duringPanel'), post: document.getElementById('postPanel') };
+        tabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-tab');
+                tabs.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                Object.values(panels).forEach(p => p.classList.remove('active-panel'));
+                if(panels[id]) panels[id].classList.add('active-panel');
+            });
+        });
+    }
+    
+    function init() {
+        updateApiStatus();
+        checkCameraPermission();
+        checkLocationPermission();
+        const saved = localStorage.getItem('travel_destination');
+        if(saved) {
+            try {
+                currentDestination = JSON.parse(saved);
+                document.getElementById('selectedDestDisplay').innerText = `${currentDestination.city}, ${currentDestination.country}`;
+                document.getElementById('currentDestBadge').innerHTML = `目的地：${currentDestination.city}`;
+                document.getElementById('urgentDestHint').innerHTML = `将根据${currentDestination.city}当地情况给出方案`;
+            } catch(e) {}
+        }
+        initTabs();
+        initLocationSelectors();
+        setupHotCities();
+        bindEvents();
+        if(DEEPSEEK_API_KEY) document.getElementById('apiKeyInput').value = '••••••••';
+    }
+    init();
+</script>
+</body>
+</html>
